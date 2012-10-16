@@ -1,0 +1,4 @@
+---
+:module: PluginA
+:require:
+ - plugin_a
