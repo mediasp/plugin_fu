@@ -20,9 +20,10 @@ class PluginFu::Config
   end
 
 
-  def initialize(definitions, values)
+  def initialize(definitions, values, raise_when_missing=true)
     @definitions = definitions
     @raw_values  = values
+    @raise_when_missing = raise_when_missing
 
     validate!
   end
@@ -43,7 +44,7 @@ class PluginFu::Config
 
     missing = @definitions.
       select {|d| d.required? && @raw_values.none? {|k, v| k == d.key } }
-    raise RequiredValueError, missing if missing.any?
+    raise RequiredValueError, missing if @raise_when_missing && missing.any?
 
     paired = @raw_values.map {|k, v| [@definitions.find {|d| d.key == k }, v] }
     coerced = Hash[*paired.map {|d, v| [d.key, d.coerce(v)] }.flatten]
