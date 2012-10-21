@@ -13,6 +13,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency('rake')
   s.add_development_dependency('minitest', '~> 2.1.0')
   s.add_development_dependency('mocha', '~> 0.9.12')
+  s.add_development_dependency('climate')
 
   s.files = Dir.glob("lib/**/*")
 end

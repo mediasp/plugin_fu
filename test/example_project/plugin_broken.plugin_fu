@@ -1,0 +1,4 @@
+---
+:module: PluginBroken
+:require:
+ - plugin_broken

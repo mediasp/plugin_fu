@@ -1,4 +1,5 @@
 require 'yaml'
+require 'bigdecimal'
 
 module PluginFu
 
@@ -17,6 +18,22 @@ module PluginFu
 
     # Create a new Loader object that builds applications with the given plugins
     def create_loader(enabled_plugins)
+      enabled_plugins = enabled_plugins.map do |p|
+        if p.is_a?(Plugin)
+          p
+        else
+          plugins.find {|plugin| p == plugin.module_name }
+        end
+      end
+
+      enabled_plugins.each do |p|
+        log("activating #{p}")
+        p.activate!
+      end
+
+      log("enabled_plugins: #{enabled_plugins.inspect}")
+
+      Loader.new(enabled_plugins)
     end
 
     private
@@ -29,9 +46,9 @@ module PluginFu
       @plugins = fu_files.map do |fu_file|
         plugin_data = YAML.load_file(fu_file)
         begin
-          Plugin.new(plugin_data)
+          Plugin.new(plugin_data, fu_file)
         rescue => e
-          log("[ERROR] could not build plugin from '#{fu_file}': #{e.message}")
+          log_error("could not build plugin from '#{fu_file}'", e)
         end
       end.compact
     end
@@ -40,49 +57,74 @@ module PluginFu
       @logger && @logger.puts(message)
     end
 
+    def log_error(message, error=nil)
+      log("[ERROR] #{message}" + error.nil?? '' : error.message)
+      log(error.backtrace) if error
+    end
+
   end
 
   extend ClassMethods
 
+  # Meta information about a plugin
   class Plugin
 
     attr_reader :module_name
     attr_reader :require_files
+    attr_reader :plugin_fu_file
 
-    def initialize(data)
+    def initialize(data, plugin_fu_file=nil)
       @module_name = data[:module] or raise 'no module name defined'
       @require_files = data[:require] or raise 'no files to require'
+      @plugin_fu_file = plugin_fu_file
     end
 
     def activate!
+      return if activated?
+
       @require_files.each do |file|
         require file
       end
+
+      @module = module_name.split('::').
+        inject(Object) {|m, v| m.const_get(v) }
 
       @activated = true
     end
 
     def activated? ; !!@activated ; end
 
+    def module ; @module ; end
+
+    def config
+      c = ConfigReceiver.new
+      @module.define_config(c)
+      c.all
+    end
+
     def to_s
       "#<PluginFu::Plugin module_name='#@module_name' activated=#{activated?}>"
     end
   end
 
+
+
   class Loader
 
-    # Build an instance of an application using the given config object
+    attr_reader :plugins
+
+    def initialize(plugins)
+      @plugins = plugins
+    end
+
+    # Build an instance of an application using the given hash of config values
     def build_application(config)
     end
 
     # Return meta information about the configuration used and required
     # by applications built by this Loader
     def config_meta
-    end
-
-    # Return the module that corresponds to a given plugin.  This module
-    # is expected to conform to the plugin module interface.
-    def module_for_plugin(plugin)
+      Hash[*plugins.map {|p| [p, p.config] }.flatten(1) ]
     end
 
     # Returns a list of basic validation errors for the given set of
@@ -91,6 +133,6 @@ module PluginFu
     end
 
   end
-
-
 end
+
+require 'plugin_fu/config'
