@@ -97,7 +97,7 @@ module PluginFu
     def module ; @module ; end
 
     def config
-      c = ConfigReceiver.new
+      c = Config::Receiver.new
       @module.define_config(c)
       c.all
     end
@@ -106,8 +106,6 @@ module PluginFu
       "#<PluginFu::Plugin module_name='#@module_name' activated=#{activated?}>"
     end
   end
-
-
 
   class Loader
 
@@ -118,7 +116,15 @@ module PluginFu
     end
 
     # Build an instance of an application using the given hash of config values
-    def build_application(config)
+    def build_application(config_hash)
+      config = build_config(config_hash)
+      app = Wirer::Container.new
+
+      plugins.each do |plugin|
+        plugin.add_services_to_application(app, config)
+      end
+
+      app
     end
 
     # Return meta information about the configuration used and required
@@ -127,9 +133,12 @@ module PluginFu
       Hash[*plugins.map {|p| [p, p.config] }.flatten(1) ]
     end
 
-    # Returns a list of basic validation errors for the given set of
-    # configuration if it were to be applied to a new application.
-    def validate_config(config)
+    # Attempts to build a config object that would be used within the
+    # application for the given set of config values, raising any errors on the
+    # way
+    def build_config(config)
+      all_definitions = config_meta.map {|p, l| l }.flatten
+      Config.new(all_definitions, config)
     end
 
   end

@@ -1,7 +1,3 @@
-require 'minitest/autorun'
-require 'plugin_fu'
-require 'open4'
-
 require 'test/helpers'
 
 describe 'PluginFu' do
@@ -38,6 +34,15 @@ describe 'PluginFu' do
       assert_stdout_matches 'PluginA - name_of_cat - The name of the cat'
       assert_stdout_matches 'PluginA - age_of_cat - How old is the cat'
       assert_stdout_matches 'PluginB - server_precision - spline calculation precision'
+    end
+  end
+
+  describe '#build_config' do
+    it 'returns nil if everything is ok' do
+      exec_project '--validate-config'
+    end
+    it 'returns a list of error messages if something fails' do
+      exec_project '--validate-config --config=does_not_exist=bah'
     end
   end
 end

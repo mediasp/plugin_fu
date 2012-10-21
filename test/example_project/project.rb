@@ -54,6 +54,9 @@ def run
   end
 
   if options[:validate_config]
-    loader.validate_config(config)
+    config = loader.build_config(config)
+    config.to_hash.each do |key, value|
+      puts [key, value].join('=')
+    end
   end
 end

@@ -92,20 +92,22 @@ class PluginFu::Config
     end
 
     REAL = /^([\-\+])?[0-9]*(\.[0-9]*)?$/
-    INTEGER = /^[\+\-][0-9]*$/
+    INTEGER = /^[\+\-]?[0-9]*$/
     BOOLEAN = /(true)|(false)/
 
     def coerce(value)
       return nil if value.nil?
 
+      value = value.to_s
+
       case type
-      when :string then value.to_s
+      when :string then value
       when :float
         REAL.match(value) or raise TypeError.new(self, value)
         value.to_f
       when :decimal
         REAL.match(value) or raise TypeError.new(self, value)
-        BigDecimal.new(value.to_s)
+        BigDecimal.new(value)
       when :integer
         INTEGER.match(value) or raise TypeError.new(self, value)
         value.to_i
