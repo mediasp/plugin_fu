@@ -17,7 +17,6 @@ describe 'PluginFu' do
   describe '#configure!' do
     it "finds *.plugin_fu files on the root of load path entries, parses " +
       "them, and builds a plugin objects, queryable via the plugins method" do
-
       exec_project '--dump-plugins'
 
       assert_stdout_matches 'plugin_a.plugin_fu,PluginA'
@@ -38,6 +37,11 @@ describe 'PluginFu' do
       assert_stdout_matches 'PluginA - name_of_cat - The name of the cat'
       assert_stdout_matches 'PluginA - age_of_cat - How old is the cat'
       assert_stdout_matches 'PluginB - server_precision - spline calculation precision'
+    end
+
+    it 'copes with nested modules' do
+      exec_project "--config-help --plugin-fu-pattern=nested  --plugin='Nested::Plugin::Module'"
+      assert_stdout_matches 'Nested::Plugin::Module - foo - foo'
     end
 
     it 'barfs if you try to enable a plugin that it does not know about' do

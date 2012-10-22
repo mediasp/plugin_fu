@@ -60,7 +60,7 @@ module PluginFu
         begin
           Plugin.new(plugin_data, fu_file)
         rescue => e
-          log_error("could not build plugin from '#{fu_file}'", e)
+          log_error("could not build plugin from '#{fu_file}': ", e)
         end
       end.compact
     end
@@ -70,7 +70,7 @@ module PluginFu
     end
 
     def log_error(message, error=nil)
-      log("[ERROR] #{message}" + error.nil?? '' : error.message)
+      log("[ERROR] #{message}" + (error.nil?? '' : error.message))
       log(error.backtrace) if error
     end
 
