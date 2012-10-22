@@ -24,16 +24,25 @@ describe 'PluginFu' do
       assert_stdout_matches 'plugin_b.plugin_fu,PluginB'
       assert_stdout_matches 'plugin_broken.plugin_fu,PluginBroken'
     end
+
+    it "lets you supply a non-standard plugin-fu file pattern" do
+      exec_project '--dump-plugins --plugin-fu-pattern=hidden-fu --plugin=PluginA'
+      assert_stdout_matches 'hidden-fu,PluginA'
+    end
   end
 
   describe '#config_meta' do
     it 'can return information about config that plugin expects' do
-
       exec_project '--config-help'
 
       assert_stdout_matches 'PluginA - name_of_cat - The name of the cat'
       assert_stdout_matches 'PluginA - age_of_cat - How old is the cat'
       assert_stdout_matches 'PluginB - server_precision - spline calculation precision'
+    end
+
+    it 'barfs if you try to enable a plugin that it does not know about' do
+      exec_project '--config-help --plugin=PluginArse', 4
+      assert_stderr_matches 'No such plugin named: PluginArse'
     end
   end
 

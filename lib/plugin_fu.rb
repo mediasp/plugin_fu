@@ -3,13 +3,23 @@ require 'bigdecimal'
 
 module PluginFu
 
+  # Raised when you try to use a plugin that can't be found
+  class UnknownPluginError < RuntimeError
+    def initialize(name)
+      super("No such plugin named: #{name}")
+    end
+  end
+
   module ClassMethods
+
+    DEFAULT_PATTERN = '*.plugin_fu'
 
     # One-time set up method to configure how the global plugin-fu singleton
     # works.  Can only be called once, as it will call Kernel.require and mess
     # with $LOAD_PATH
     def configure!(config)
-      @logger = config[:logger]
+      @logger =  config[:logger]
+      @pattern = config[:pattern] || DEFAULT_PATTERN
       find_plugins
     end
 
@@ -22,7 +32,8 @@ module PluginFu
         if p.is_a?(Plugin)
           p
         else
-          plugins.find {|plugin| p == plugin.module_name }
+          plugins.find {|plugin| p == plugin.module_name } or
+            raise UnknownPluginError, p
         end
       end
 
@@ -39,8 +50,9 @@ module PluginFu
     private
 
     def find_plugins
+
       fu_files = $LOAD_PATH.map do |entry|
-        Dir[File.join(entry, '*.plugin_fu')]
+        Dir[File.join(entry, @pattern)]
       end.flatten
 
       @plugins = fu_files.map do |fu_file|
