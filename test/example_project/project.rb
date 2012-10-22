@@ -28,7 +28,10 @@ opt :config_help, 'dump out help for config options in the plugins'
 
 
 def build_config
-  Hash[*options[:config].map {|given| given.split('=') }.flatten]
+  Hash[*options[:config].
+    map {|given| given.split('=') }.
+    map {|k,v| [k.to_sym, v] }.
+    flatten]
 end
 
 def run
@@ -54,9 +57,15 @@ def run
   end
 
   if options[:validate_config]
-    config = loader.build_config(config)
-    config.to_hash.each do |key, value|
-      puts [key, value].join('=')
+    begin
+      config = loader.build_config(config)
+
+      config.to_hash.each do |key, value|
+        puts [key, value.inspect].join('=')
+      end
+    rescue PluginFu::Config::ValueError => e
+      $stderr.puts(e.message)
+      exit 4
     end
   end
 end

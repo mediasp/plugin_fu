@@ -3,10 +3,10 @@ require 'test/helpers'
 describe 'PluginFu' do
   include ExecHelper
 
-  def exec_project(options)
+  def exec_project(options, exitstatus=0)
     Dir.chdir 'test/example_project' do
       begin
-        exec "ruby -r rubygems -I../../lib project.rb " + options || ''
+        exec "ruby -r rubygems -I../../lib project.rb " + options || '', exitstatus
       rescue => e
         puts all_output
         raise
@@ -40,9 +40,26 @@ describe 'PluginFu' do
   describe '#build_config' do
     it 'returns nil if everything is ok' do
       exec_project '--validate-config'
+      assert_stdout_matches 'name_of_cat="jess"'
+      assert_stdout_matches 'age_of_cat=12'
+      assert_stdout_matches 'server_precision=nil'
     end
+
+    it 'can accept non default config values' do
+      exec_project '--validate-config --config=name_of_cat=peter'
+      assert_stdout_matches 'name_of_cat="peter"'
+      assert_stdout_matches 'age_of_cat=12'
+      assert_stdout_matches 'server_precision=nil'
+    end
+
+    it 'barfs if you supply a value that can not be coerced' do
+      exec_project '--validate-config --config=age_of_cat=bryan', 4
+      assert_stderr_matches "Could not coerce \"bryan\" to type integer for age_of_cat"
+    end
+
     it 'returns a list of error messages if something fails' do
-      exec_project '--validate-config --config=does_not_exist=bah'
+      exec_project '--validate-config --config=does_not_exist=bah', 4
+      assert_stderr_matches "did not expect values for: does_not_exist"
     end
   end
 end

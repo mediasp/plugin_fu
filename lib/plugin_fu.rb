@@ -136,9 +136,9 @@ module PluginFu
     # Attempts to build a config object that would be used within the
     # application for the given set of config values, raising any errors on the
     # way
-    def build_config(config)
+    def build_config(config, allow_missing=false)
       all_definitions = config_meta.map {|p, l| l }.flatten
-      Config.new(all_definitions, config)
+      Config.new(all_definitions, config, allow_missing)
     end
 
   end

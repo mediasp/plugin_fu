@@ -1,29 +1,32 @@
 # -*- coding: utf-8 -*-
 class PluginFu::Config
 
-  class TypeError < RuntimeError
+  # raised when there is something a miss with config values
+  class ValueError < RuntimeError ; end
+
+  class TypeError < ValueError
     def initialize(defn, value)
-      super("Could not coerce #{value} to type #{defn.type} for #{defn.key}")
+      super("Could not coerce #{value.inspect} to type #{defn.type} for #{defn.key}")
     end
   end
 
-  class UnexpectedValueError < RuntimeError
+  class UnexpectedValueError < ValueError
     def initialize(*keys)
-      super("did not expect values for #{keys.inspect}")
+      super("did not expect values for: #{keys.flatten.join(', ')}")
     end
   end
 
-  class RequiredValueError < RuntimeError
+  class RequiredValueError < ValueError
     def initialize(*keys)
-      super("missing required values for #{keys.inspect}")
+      super("missing required values for: #{keys.flatten.join(', ')}")
     end
   end
 
 
-  def initialize(definitions, values, raise_when_missing=true)
+  def initialize(definitions, values, allow_missing=false)
     @definitions = definitions
     @raw_values  = values
-    @raise_when_missing = raise_when_missing
+    @allow_missing = allow_missing
 
     validate!
   end
@@ -40,11 +43,11 @@ class PluginFu::Config
 
   def validate!
     extra = @raw_values.select {|k, v| @definitions.none? {|d| d.key == k } }
-    raise UnexpectedValueError, extra.map {|k,v| k } if extra.any?
+    raise UnexpectedValueError, extra.map(&:first) if extra.any?
 
     missing = @definitions.
       select {|d| d.required? && @raw_values.none? {|k, v| k == d.key } }
-    raise RequiredValueError, missing if @raise_when_missing && missing.any?
+    raise RequiredValueError, missing.map(&:first) if !@allow_missing && missing.any?
 
     paired = @raw_values.map {|k, v| [@definitions.find {|d| d.key == k }, v] }
     coerced = Hash[*paired.map {|d, v| [d.key, d.coerce(v)] }.flatten]

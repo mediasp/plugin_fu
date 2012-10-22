@@ -21,9 +21,9 @@ module ExecHelper
     }
   end
 
-  def exec(cmd)
+  def exec(cmd, expect_status=0)
     popen3(cmd)
-    if @last_status.exitstatus != 0
+    if @last_status.exitstatus != expect_status
       raise "command: #{cmd} failed with #{@last_status.exitstatus}\n#{@all_output}"
     end
     true
