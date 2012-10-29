@@ -1,5 +1,6 @@
 require 'yaml'
 require 'bigdecimal'
+require 'wirer'
 
 module PluginFu
 
@@ -25,6 +26,11 @@ module PluginFu
 
     # Return a list of plugin objects that have been sensed from the load path
     def plugins ; @plugins ; end
+
+    # manually add a fully-formed Plugin object
+    def add_plugin(plugin)
+      @plugins << plugin
+    end
 
     # Create a new Loader object that builds applications with the given plugins
     def create_loader(enabled_plugins)
@@ -117,6 +123,15 @@ module PluginFu
     def to_s
       "#<PluginFu::Plugin module_name='#@module_name' activated=#{activated?}>"
     end
+
+    def =~(name_module_or_plugin)
+      name_module_or_plugin &&
+        case name_module_or_plugin
+        when String then name_module_or_plugin == module_name
+        when Plugin then name_module_or_plugin == self
+        else name_module_or_plugin == self.module
+        end
+    end
   end
 
   class Loader
@@ -130,13 +145,8 @@ module PluginFu
     # Build an instance of an application using the given hash of config values
     def build_application(config_hash)
       config = build_config(config_hash)
-      app = Wirer::Container.new
 
-      plugins.each do |plugin|
-        plugin.add_services_to_application(app, config)
-      end
-
-      app
+      Application.new(plugins, config)
     end
 
     # Return meta information about the configuration used and required
@@ -153,6 +163,38 @@ module PluginFu
       Config.new(all_definitions, config, allow_missing)
     end
 
+  end
+
+  # wirer errors allow you to supply a cause, v. handy
+  class NestedError < Wirer::Error ; end
+
+  class Application < Wirer::Container
+
+    attr_reader :plugins
+    attr_reader :config
+
+    def initialize(plugins, config)
+      super()
+
+      @plugins = plugins.clone.freeze
+      @config  = config
+    end
+
+    def plugin_enabled?(name_or_module)
+      @plugins
+    end
+
+    private
+
+    def add_plugins_to_self
+      plugins.each do |plugin|
+        begin
+          plugin.add_services_to_application(self, config)
+        rescue => e
+          raise NestedError.new("Unable to add plugin #{plugin} to application", e)
+        end
+      end
+    end
   end
 end
 
